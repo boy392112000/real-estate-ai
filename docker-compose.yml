@@ -1,0 +1,19 @@
+name: real-estate-ai
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: real_estate_ai_app
+    ports:
+      - "8000:8000"
+    environment:
+      - PYTHONUNBUFFERED=1
+      - PORT=8000
+    env_file:
+      - .env
+    volumes:
+      # 掛載原始碼與知識庫，確保地端修改即時生效且資料不遺失
+      - .:/app
+    restart: unless-stopped

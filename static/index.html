@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>房地產爆款發文模型系統 | 零幻覺法規校驗與 AI 創作平台</title>
+  <link rel="stylesheet" href="/static/style.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
+</head>
+<body>
+  <div class="app-container">
+    <!-- 頂部導覽列 -->
+    <header class="app-header">
+      <div class="brand">
+        <div class="brand-badge">PRO</div>
+        <div class="brand-text">
+          <h1>房地產爆款發文模型系統</h1>
+          <p class="subtitle">台灣最新房產法規 • 預告草案防幻覺校驗 • LINE 機器人串接</p>
+        </div>
+      </div>
+      <div class="header-actions">
+        <div class="status-indicator">
+          <span class="status-dot"></span>
+          <span id="systemStatusText">知識庫連線中</span>
+        </div>
+        <button id="btnOpenPolicyModal" class="btn btn-secondary">
+          📜 法規與預告草案庫
+        </button>
+        <button id="btnOpenSettingsModal" class="btn btn-secondary">
+          ⚙️ 模型與 API 設定
+        </button>
+      </div>
+    </header>
+
+    <!-- 主要工作區 -->
+    <main class="main-layout">
+      <!-- 左側：發文設定與結構化輸入 -->
+      <section class="panel editor-panel">
+        <div class="panel-header">
+          <h2>創作設定與參數</h2>
+          <span class="badge">結構化輸入</span>
+        </div>
+
+        <form id="generateForm" class="form-content">
+          <!-- 1. 爆款切角與鉤子庫 -->
+          <div class="form-group">
+            <label for="categorySelect">
+              <span>🎯 爆款內容切角</span>
+              <small class="tip">選擇文章的核心行銷策略</small>
+            </label>
+            <select id="categorySelect" class="form-control">
+              <option value="policy_pitfall">政策解讀與買房避坑 (權威專業型 - PAS 結構)</option>
+              <option value="emotional_resonance">真實故事與情感共鳴 (溫暖啟發型)</option>
+              <option value="property_conversion">物件行銷與精準轉化 (高成交急迫型 - AIDA)</option>
+              <option value="controversial_engagement">爭議話題與社群論戰 (流量吸睛型)</option>
+              <option value="insider_tips">內幕踢爆與行家攻略 (知識乾貨型)</option>
+            </select>
+          </div>
+
+          <!-- 鉤子選擇器 -->
+          <div class="form-group">
+            <div class="label-row">
+              <label for="hookSelect">🪝 爆款開頭鉤子 (Hook)</label>
+              <div style="display:flex; gap:0.5rem;">
+                <button type="button" id="btnAiGenHooks" class="btn-text" style="color:#2563eb;">✨ AI 產出專屬鉤子</button>
+                <button type="button" id="btnRandomHook" class="btn-text">🎲 隨機抽選</button>
+              </div>
+            </div>
+            <select id="hookSelect" class="form-control hook-select">
+              <option value="">載入鉤子庫中...</option>
+            </select>
+            <input type="text" id="customHookInput" class="form-control mt-2" placeholder="或自行輸入自訂吸睛開頭標題（選填）...">
+          </div>
+
+          <!-- 2. 目標平台與語氣 -->
+          <div class="grid-2">
+            <div class="form-group">
+              <label for="platformSelect">📱 發布平台格式</label>
+              <select id="platformSelect" class="form-control">
+                <option value="facebook">Facebook (社群長文 / 深度剖析)</option>
+                <option value="threads">Threads (短節奏 / 痛點撕扯金句)</option>
+                <option value="instagram">Instagram (輪播卡片腳本 + Caption)</option>
+                <option value="line">LINE (私域推播 / 案場快訊)</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="toneSelect">🗣️ 語氣風格</label>
+              <select id="toneSelect" class="form-control">
+                <option value="專業權威且具親和力">專業權威且具親和力 (專家視角)</option>
+                <option value="犀利直白、直擊痛點">犀利直白、直擊痛點 (爆款流量)</option>
+                <option value="溫暖同理、真實感人">溫暖同理、真實感人 (情感共鳴)</option>
+                <option value="老練投資客的實戰筆記">老練投資客的實戰筆記 (精算分析)</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- 3. 輸入模式切換 (議題分析 vs 物件行銷) -->
+          <div class="tab-group">
+            <div class="tab-buttons">
+              <button type="button" class="tab-btn active" data-tab="tabTopic">💡 房市議題 / 政策主題</button>
+              <button type="button" class="tab-btn" data-tab="tabProperty">🏢 具體物件精準行銷</button>
+            </div>
+
+            <!-- Tab 1: 主題模式 -->
+            <div id="tabTopic" class="tab-pane active">
+              <div class="form-group">
+                <label for="topicInput">主題或核心訴求</label>
+                <textarea id="topicInput" class="form-control" rows="3" placeholder="例如：新青安 3.0 正式上路！新婚首購與育兒家庭如何善用加碼額度？買房避坑指南..."></textarea>
+              </div>
+            </div>
+
+            <!-- Tab 2: 物件結構化模式 -->
+            <div id="tabProperty" class="tab-pane">
+              <div class="grid-2">
+                <div class="form-group">
+                  <label for="propTitle">物件案名 / 社區</label>
+                  <input type="text" id="propTitle" class="form-control" placeholder="例：新莊副都心指標美邸">
+                </div>
+                <div class="form-group">
+                  <label for="propRegion">區域位置</label>
+                  <input type="text" id="propRegion" class="form-control" placeholder="例：新北市新莊區（捷運站步行5分）">
+                </div>
+              </div>
+              <div class="grid-2">
+                <div class="form-group">
+                  <label for="propPrice">開價 / 總價區間</label>
+                  <input type="text" id="propPrice" class="form-control" placeholder="例：1,880 萬 (車位另計)">
+                </div>
+                <div class="form-group">
+                  <label for="propLayout">坪數與格局</label>
+                  <input type="text" id="propLayout" class="form-control" placeholder="例：3房2廳2衛 / 建坪 38.5 坪">
+                </div>
+              </div>
+              <div class="form-group">
+                <label for="propHighlights">核心賣點與優勢</label>
+                <input type="text" id="propHighlights" class="form-control" placeholder="例：高樓邊間雙衛開窗、低公設比、屋況極新、近雙語學區">
+              </div>
+              <div class="form-group">
+                <label for="propUrgency">急迫感 / 適用受眾</label>
+                <input type="text" id="propUrgency" class="form-control" placeholder="例：屋主換屋惜售、新青安首購成家首選">
+              </div>
+            </div>
+          </div>
+
+          <!-- 即時聯網比對開關 -->
+          <div class="live-search-toggle">
+            <label class="toggle-container">
+              <input type="checkbox" id="chkLiveSearch" checked>
+              <span class="toggle-slider"></span>
+            </label>
+            <div class="toggle-label">
+              <strong>🌐 自動聯網檢索台灣最新房市新聞與草案</strong>
+              <small>生成前自動即時檢索中央銀行、財政部、內政部公告與房市即時新聞</small>
+            </div>
+          </div>
+
+          <!-- 生成按鈕 -->
+          <button type="submit" id="btnGenerate" class="btn btn-primary btn-block">
+            <span class="btn-icon">⚡</span>
+            <span>立即生成爆款文章 (自動聯網比對)</span>
+          </button>
+        </form>
+      </section>
+
+      <!-- 右側：文案預覽、事實驗證與 LINE 模擬 -->
+      <section class="panel preview-panel">
+        <div class="panel-header">
+          <div class="tabs-preview">
+            <button type="button" class="preview-tab active" data-target="previewContentPane">📄 生成結果預覽</button>
+            <button type="button" class="preview-tab" data-target="previewLinePane">🤖 LINE 機器人模擬</button>
+          </div>
+          <div class="preview-actions">
+            <span id="charCount" class="char-count">0 字</span>
+            <button id="btnCopy" class="btn btn-sm btn-outline">
+              📋 一鍵複製
+            </button>
+          </div>
+        </div>
+
+        <!-- 預覽主要內容區 -->
+        <div id="previewContentPane" class="preview-body active">
+          <!-- 零幻覺驗證摘要條 -->
+          <div id="validationBar" class="validation-bar empty">
+            <div class="val-icon">🛡️</div>
+            <div class="val-text">
+              <strong id="valTitle">等待生成文章</strong>
+              <span id="valDesc">系統將在生成時自動聯網檢索並比對最新法規與草案，杜絕幻覺與過期資訊。</span>
+            </div>
+          </div>
+
+          <!-- 即時聯網查證來源 -->
+          <div id="liveSourcesSection" class="live-sources-box hidden">
+            <div class="sources-header">
+              <span>🌐 即時聯網比對引用來源：</span>
+              <span id="liveSourcesCount" class="badge">0 篇最新動態</span>
+            </div>
+            <div id="liveSourcesList" class="sources-list"></div>
+          </div>
+
+          <!-- 生成內容呈現區 -->
+          <div class="content-wrapper">
+            <textarea id="outputContent" class="output-textarea" placeholder="點擊左側「立即生成爆款文章」，產出之文章將在此呈現..." readonly></textarea>
+          </div>
+
+          <!-- 詳細事實驗證展開報告 -->
+          <div id="validationReport" class="validation-report hidden">
+            <h4>📋 法規與事實檢核報告</h4>
+            <div id="valPassedList" class="val-list passed"></div>
+            <div id="valWarningList" class="val-list warnings"></div>
+          </div>
+        </div>
+
+        <!-- LINE Bot 模擬測試面板 -->
+        <div id="previewLinePane" class="preview-body">
+          <div class="line-mock-container">
+            <div class="line-header" style="display:flex; justify-content:space-between; align-items:center;">
+              <div style="display:flex; align-items:center; gap:0.5rem;">
+                <div class="line-avatar">🤖</div>
+                <div class="line-user-info">
+                  <strong>房地產爆款發文助手</strong>
+                  <span>LINE 終端通訊與配額管制作業環境</span>
+                </div>
+              </div>
+              <div style="display:flex; align-items:center; gap:0.35rem;">
+                <label for="lineUserIdInput" style="font-size:0.75rem; color:#64748b; margin-bottom:0;">User ID:</label>
+                <input type="text" id="lineUserIdInput" value="U_user_001" style="font-size:0.75rem; padding:0.15rem 0.35rem; width:110px; border-radius:4px; border:1px solid #cbd5e1;">
+              </div>
+            </div>
+            <div style="background:#f1f5f9; padding:0.4rem 0.75rem; display:flex; gap:0.35rem; flex-wrap:wrap; border-bottom:1px solid #e2e8f0;">
+              <button type="button" class="btn-quick-line btn btn-secondary btn-sm" style="font-size:0.7rem; padding:0.15rem 0.4rem;" data-cmd="額度">📊 查額度</button>
+              <button type="button" class="btn-quick-line btn btn-secondary btn-sm" style="font-size:0.7rem; padding:0.15rem 0.4rem;" data-cmd="兌換 VIP888">🎁 兌換 VIP</button>
+              <button type="button" class="btn-quick-line btn btn-secondary btn-sm" style="font-size:0.7rem; padding:0.15rem 0.4rem;" data-cmd="法規">📜 限貸法規</button>
+              <button type="button" class="btn-quick-line btn btn-secondary btn-sm" style="font-size:0.7rem; padding:0.15rem 0.4rem;" data-cmd="寫文案 新青安3.0新婚首購優惠">⚡ 產新青安長文</button>
+            </div>
+            <div id="lineChatBox" class="line-chat-box">
+              <div class="line-bubble bot">
+                您好！我是房地產爆款發文助手。<br>
+                💡 免費會員每日享有 3 次免費產文額度（每日 00:00 自動重置）。<br><br>
+                您可以點擊上方快捷按鈕或輸入：<br>
+                • <code>額度</code>（查詢剩餘次數）<br>
+                • <code>兌換 VIP888</code>（解鎖永久 VIP 無限產文）<br>
+                • <code>新青安 3.0 額度怎麼貸</code><br>
+                • <code>寫物件 區域:板橋 總價:2300萬 格局:3房</code>
+              </div>
+            </div>
+            <div class="line-input-area">
+              <input type="text" id="lineInput" placeholder="輸入指令（如：額度、兌換 VIP888、房市主題）...">
+              <button type="button" id="btnSendLine" class="btn btn-primary btn-sm">發送</button>
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <!-- Modal 1: 台灣房產法規與預告草案知識庫 -->
+    <div id="policyModal" class="modal">
+      <div class="modal-content modal-lg">
+        <div class="modal-header">
+          <h3>📜 台灣最新房產法規與預告草案資料庫</h3>
+          <button type="button" class="modal-close">&times;</button>
+        </div>
+        <div class="modal-body">
+          <div style="display:flex; justify-content:space-between; align-items:center; gap:0.75rem; flex-wrap:wrap;">
+            <div style="display:flex; gap:0.5rem; flex:1; min-width:260px;">
+              <input type="text" id="syncKeywordInput" class="form-control" style="font-size:0.85rem;" placeholder="輸入特定主題同步（留空則同步金融/稅制/建築/都更/租賃六大領域）">
+              <button type="button" id="btnSyncLivePolicies" class="btn btn-secondary btn-sm" style="white-space:nowrap;">
+                🔄 立即聯網同步
+              </button>
+            </div>
+          </div>
+          <div id="liveSyncResultBox" class="alert-box info mt-2 hidden"></div>
+          <div id="policyModalBody">
+            <p>載入法規資料中...</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal 2: 系統設定與 API 設定 -->
+    <div id="settingsModal" class="modal">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h3>⚙️ AI 模型與 LINE 設定</h3>
+          <button type="button" class="modal-close">&times;</button>
+        </div>
+        <div class="modal-body">
+          <div class="form-group">
+            <label for="settingProvider">AI 模型提供商 (純 AI 動態深度創作)</label>
+            <select id="settingProvider" class="form-control">
+              <option value="gemini">Google Gemini API (推薦 - 速度快且精準)</option>
+              <option value="openai">OpenAI API (GPT-4o / GPT-4o-mini)</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="settingApiKey">🔑 您個人的 API Key (純用戶端端點，零伺服器留存)</label>
+            <input type="password" id="settingApiKey" class="form-control" placeholder="貼上您的 Gemini 或 OpenAI API Key">
+            <div style="margin-top:0.6rem; display:flex; align-items:center; gap:0.5rem;">
+              <input type="checkbox" id="chkRememberApiKey">
+              <label for="chkRememberApiKey" style="font-size:0.85rem; cursor:pointer; color:#334155; margin-bottom:0; font-weight:normal;">在瀏覽器記住此金鑰（預設不勾選，關閉分頁即自動銷毀）</label>
+            </div>
+            <small class="tip">安全保證：金鑰僅於瀏覽器本地記憶體/工作階段運作，後端伺服器絕不寫入檔案與日誌。</small>
+          </div>
+          <div style="margin-top:0.5rem; display:flex; gap:0.5rem; align-items:center;">
+            <button type="button" id="btnTestConnection" class="btn btn-secondary btn-sm">🔌 測試 API 連線</button>
+            <span id="testConnResultBox" style="font-size:0.8rem;"></span>
+          </div>
+          <div class="alert-box info mt-3">
+            <strong>🔒 隱私與純 AI 安全宣告：</strong>
+            <p>本系統已全面關閉任何伺服器端金鑰備援，每次產文一律由用戶端攜帶授權，完全杜絕金鑰洩漏與非預期調用。</p>
+          </div>
+        </div>
+        <div class="modal-footer" style="display:flex; justify-content:space-between; align-items:center;">
+          <button type="button" id="btnClearApiKey" class="btn btn-secondary btn-sm" style="color:#b91c1c;">🗑️ 清除本機已存金鑰</button>
+          <button type="button" id="btnSaveSettings" class="btn btn-primary">套用設定</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="/static/app.js"></script>
+</body>
+</html>
