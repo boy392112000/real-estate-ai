@@ -164,6 +164,11 @@ def test_line_bot_commands_and_quota_integration():
     redeem_reply = handler.handle_message_text("兌換 VIP888", user_id=test_uid)
     assert "恭喜" in redeem_reply
     assert "VIP" in redeem_reply
+    
+    # 測試 日常打招呼（免扣額度且親切引導）
+    greet_reply = handler.handle_message_text("你好阿", user_id=test_uid)
+    assert "您好！我是房地產爆款發文助手" in greet_reply
+    assert "想產出什麼房市主題" in greet_reply
 
 def test_line_webhook_verify_endpoint():
     """驗證 LINE Webhook Verify 探測請求與 GET/POST/HEAD 路由狀態一律回傳 200"""

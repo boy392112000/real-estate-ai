@@ -26,6 +26,26 @@ class LineBotHandler:
         """
         raw = text.strip()
 
+        # 0. 日常問候與打招呼（免扣額度，親切引導）
+        greetings = ["你好", "您好", "嗨", "哈囉", "安安", "在嗎", "早安", "午安", "晚安", "hi", "hello", "hey", "你好阿", "你好啊", "哈囉啊", "嗨嗨", "在麼", "在嘛"]
+        clean_greeting = raw.lower().replace(" ", "").replace("！", "").replace("!", "").replace("～", "").replace("~", "").replace("？", "").replace("?", "").replace("，", "").replace(",", "")
+        if clean_greeting in greetings or any(clean_greeting == g for g in greetings):
+            status = self.quota_manager.get_user_status(user_id)
+            return f"""👋 您好！我是房地產爆款發文助手 🤖
+（目前身份：{status['role']}，今日剩餘額度：{status['remaining_quota']}）
+
+想產出什麼房市主題或建案文案呢？直接傳送給我即可：
+• 🎯 房市政策：「新青安 3.0 首購解方」
+• 🏠 建案物件：「寫物件 區域:板橋 總價:2000萬 格局:3房」
+• 🎬 短影音：「Reels 腳本 買房避坑指南」
+• 📜 法規速查：輸入「法規」
+• 📊 帳戶狀態：輸入「額度」"""
+
+        # 0.1 過短無效字詞防呆（< 3 字且無房產關鍵字，免扣額度）
+        re_keywords = ["房", "貸", "稅", "約", "買", "賣", "價", "案", "建", "坪", "公設", "都更", "危老", "租", "區", "樓", "地", "宅", "成", "利息", "重購", "hook", "鉤子", "說明", "功能", "額度", "vip", "兌換"]
+        if len(raw) <= 2 and not any(k in raw.lower() for k in re_keywords):
+            return "💡 請輸入更具體的房市主題或建案條件（例如：「第七波信用管制解方」、「寫物件 區域:新莊 總價:1800萬」）。輸入「說明」可看完整指令！"
+
         # 1. 幫助與功能說明
         if raw in ["說明", "功能", "help", "menu", "選單"]:
             status = self.quota_manager.get_user_status(user_id)
