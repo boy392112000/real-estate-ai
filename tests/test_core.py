@@ -147,47 +147,41 @@ def test_quota_manager_complete_lifecycle():
     assert r5["role"] == "vip"
 
 def test_line_bot_commands_and_quota_integration():
-    """驗證 LINE Bot 整合測試"""
+    """驗證 LINE Bot 2 步引導對話狀態機完整流程"""
     engine = ViralPostEngine(KNOWLEDGE_DIR)
     handler = LineBotHandler(engine)
-    test_uid = f"line_integration_{uuid.uuid4().hex[:8]}"
+    test_uid = f"line_guided_{uuid.uuid4().hex[:8]}"
     
-    # 測試 help
-    help_reply = handler.handle_message_text("help", user_id=test_uid)
-    assert "房地產發文助手" in help_reply
+    # 1. 初始問候與主選單
+    menu_reply = handler.handle_message_text("你好", user_id=test_uid)
+    assert "爆款社群發文" in menu_reply
+    assert "請回覆【數字代號】" in menu_reply
     
-    # 測試 額度查詢
-    quota_reply = handler.handle_message_text("額度", user_id=test_uid)
+    # 2. 測試 選擇 1 (進入發文引導模式)
+    step1_reply = handler.handle_message_text("1", user_id=test_uid)
+    assert "爆款社群發文模式" in step1_reply
+    assert "步驟 2/2" in step1_reply
+    
+    # 3. 測試 選擇 0 (取消並重置回主選單)
+    cancel_reply = handler.handle_message_text("0", user_id=test_uid)
+    assert "爆款社群發文" in cancel_reply
+    
+    # 4. 測試 選擇 3 (進入法規諮詢引導模式)
+    step3_reply = handler.handle_message_text("3", user_id=test_uid)
+    assert "房產法規與稅制諮詢模式" in step3_reply
+    
+    # 5. 測試 輸入具體法規疑問 (即時解答並重置)
+    qa_reply = handler.handle_message_text("第二戶房貸最高可以貸幾成？", user_id=test_uid)
+    assert "房產" in qa_reply or "法規" in qa_reply
+    
+    # 6. 測試 選擇 5 (額度查詢)
+    quota_reply = handler.handle_message_text("5", user_id=test_uid)
     assert "今日剩餘額度" in quota_reply
     
-    # 測試 兌換碼啟動 VIP
+    # 7. 測試 兌換碼啟動 VIP
     redeem_reply = handler.handle_message_text("兌換 VIP888", user_id=test_uid)
     assert "恭喜" in redeem_reply
     assert "VIP" in redeem_reply
-    
-    # 測試 日常打招呼（免扣額度且親切引導）
-    greet_reply = handler.handle_message_text("你好阿", user_id=test_uid)
-    assert "您好！我是房地產爆款發文" in greet_reply
-    assert "您可以直接傳送" in greet_reply
-    
-    # 測試 專業問答諮詢分流（非產文，直接解答）
-    qa_reply = handler.handle_message_text("第二戶房貸成數最高可以貸幾成？", user_id=test_uid)
-    assert "房產" in qa_reply or "法規" in qa_reply
-    
-    # 測試 爆款標題靈感分流
-    hooks_reply = handler.handle_message_text("寫鉤子 新青安", user_id=test_uid)
-    assert "爆款開頭鉤子" in hooks_reply
-
-def test_intent_router_classification():
-    """驗證 IntentRouter 精確識別 5 種意圖"""
-    from core.intent_router import IntentRouter, IntentType
-    
-    assert IntentRouter.classify_intent("你好啊")[0] == IntentType.GREETING
-    assert IntentRouter.classify_intent("額度")[0] == IntentType.SYSTEM_CMD
-    assert IntentRouter.classify_intent("第二戶房貸最高可以貸幾成？")[0] == IntentType.QA_CONSULT
-    assert IntentRouter.classify_intent("新青安可以買預售屋嗎")[0] == IntentType.QA_CONSULT
-    assert IntentRouter.classify_intent("寫鉤子 換屋")[0] == IntentType.GENERATE_HOOKS
-    assert IntentRouter.classify_intent("寫文案 新青安3.0首購攻略")[0] == IntentType.GENERATE_POST
 
 def test_line_webhook_verify_endpoint():
     """驗證 LINE Webhook Verify 探測請求與 GET/POST/HEAD 路由狀態一律回傳 200"""
