@@ -281,13 +281,21 @@ async def line_webhook(request: Request, x_line_signature: Optional[str] = Heade
                     reply_text = line_handler.handle_message_text(user_msg, user_id=user_id)
                     print(f"  [{idx}] 產出回覆內容 (長度: {len(reply_text)})，正在呼叫 LINE API 送出...", flush=True)
                     
-                    line_bot_api.reply_message(
-                        ReplyMessageRequest(
-                            reply_token=event.reply_token,
-                            messages=[TextMessage(text=reply_text)]
+                    # LINE 官方限制單一文字訊息最多 5000 字元
+                    safe_reply_text = reply_text if len(reply_text) <= 4900 else reply_text[:4900] + "\n\n...(篇幅過長已自動截斷)"
+                    
+                    try:
+                        line_bot_api.reply_message(
+                            ReplyMessageRequest(
+                                reply_token=event.reply_token,
+                                messages=[TextMessage(text=safe_reply_text)]
+                            )
                         )
-                    )
-                    print(f"  [{idx}] ✅ LINE 訊息成功送達用戶手機！", flush=True)
+                        print(f"  [{idx}] ✅ LINE 訊息成功送達用戶手機！", flush=True)
+                    except Exception as api_err:
+                        print(f"  [{idx}] ❌ 呼叫 LINE Messaging API 送出回覆失敗: {api_err}", flush=True)
+                        if hasattr(api_err, "body"):
+                            print(f"  [{idx}] LINE 官方回傳錯誤詳情: {api_err.body}", flush=True)
                     
         print(f"=================================================================\n", flush=True)
         return JSONResponse(status_code=status.HTTP_200_OK, content={"status": "ok"})
