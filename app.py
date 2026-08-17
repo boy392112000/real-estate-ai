@@ -10,6 +10,7 @@ from config import settings
 from core.engine import ViralPostEngine
 from core.validator import PolicyValidator
 from core.line_bot import LineBotHandler
+from core.policy_updater import AutomatedPolicyUpdater
 
 app = FastAPI(
     title="房地產爆款發文模型系統",
@@ -17,7 +18,24 @@ app = FastAPI(
     version="1.0.0"
 )
 
-from core.policy_updater import AutomatedPolicyUpdater
+def ensure_knowledge_files():
+    """即使在 Zeabur 掛載空白 Volume 時，也自動從 default_knowledge 還原基礎法規與鉤子庫"""
+    import shutil
+    k_dir = settings.KNOWLEDGE_DIR
+    def_dir = settings.BASE_DIR / "default_knowledge"
+    k_dir.mkdir(parents=True, exist_ok=True)
+    if def_dir.exists():
+        for fname in ["taiwan_policies.json", "viral_hooks.json", "real_estate_terms.json"]:
+            target = k_dir / fname
+            src = def_dir / fname
+            if src.exists() and (not target.exists() or target.stat().st_size == 0):
+                try:
+                    shutil.copy2(src, target)
+                    print(f"[Knowledge] 已自動修復並初始化知識庫: {fname}", flush=True)
+                except Exception as e:
+                    print(f"[Knowledge] 初始化失敗: {e}", flush=True)
+
+ensure_knowledge_files()
 
 # 初始化核心引擎與模組
 engine = ViralPostEngine(settings.KNOWLEDGE_DIR)

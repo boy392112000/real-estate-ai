@@ -15,18 +15,32 @@ class PolicyValidator:
 
     def _load_policies(self) -> List[Dict[str, Any]]:
         path = self.knowledge_dir / "taiwan_policies.json"
+        if not path.exists() or path.stat().st_size == 0:
+            fallback = self.knowledge_dir.parent / "default_knowledge" / "taiwan_policies.json"
+            if fallback.exists():
+                path = fallback
         if path.exists():
-            with open(path, "r", encoding="utf-8") as f:
-                data = json.load(f)
-                return data.get("policies", [])
+            try:
+                with open(path, "r", encoding="utf-8") as f:
+                    data = json.load(f)
+                    return data.get("policies", [])
+            except Exception as e:
+                print(f"[Validator] 載入法規庫失敗: {e}")
         return []
 
     def _load_terms(self) -> List[Dict[str, Any]]:
         path = self.knowledge_dir / "real_estate_terms.json"
+        if not path.exists() or path.stat().st_size == 0:
+            fallback = self.knowledge_dir.parent / "default_knowledge" / "real_estate_terms.json"
+            if fallback.exists():
+                path = fallback
         if path.exists():
-            with open(path, "r", encoding="utf-8") as f:
-                data = json.load(f)
-                return data.get("terms", [])
+            try:
+                with open(path, "r", encoding="utf-8") as f:
+                    data = json.load(f)
+                    return data.get("terms", [])
+            except Exception as e:
+                print(f"[Validator] 載入術語庫失敗: {e}")
         return []
 
     def validate_content(self, content: str) -> Dict[str, Any]:

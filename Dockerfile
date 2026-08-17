@@ -16,11 +16,12 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# 複製專案原始碼
+# 複製專案原始碼與預載種子庫
 COPY . .
+RUN cp -r knowledge default_knowledge || true
 
 # 建立持久化資料夾
-RUN mkdir -p /app/data /app/knowledge
+RUN mkdir -p /app/data /app/knowledge /app/default_knowledge
 
 EXPOSE 8000
 

@@ -21,7 +21,9 @@ class Settings:
     LINE_CHANNEL_ACCESS_TOKEN: str = os.getenv("LINE_CHANNEL_ACCESS_TOKEN", "")
     
     # 資料路徑
+    BASE_DIR: Path = BASE_DIR
     KNOWLEDGE_DIR: Path = BASE_DIR / "knowledge"
+    DEFAULT_KNOWLEDGE_DIR: Path = BASE_DIR / "default_knowledge"
     DATA_DIR: Path = BASE_DIR / "data"
 
 settings = Settings()

@@ -18,9 +18,16 @@ class ViralPostEngine:
 
     def _load_hooks(self) -> Dict[str, Any]:
         path = self.knowledge_dir / "viral_hooks.json"
+        if not path.exists() or path.stat().st_size == 0:
+            fallback = self.knowledge_dir.parent / "default_knowledge" / "viral_hooks.json"
+            if fallback.exists():
+                path = fallback
         if path.exists():
-            with open(path, "r", encoding="utf-8") as f:
-                return json.load(f)
+            try:
+                with open(path, "r", encoding="utf-8") as f:
+                    return json.load(f)
+            except Exception as e:
+                print(f"[Engine] 載入鉤子庫失敗: {e}")
         return {"categories": []}
 
     def get_hook_categories(self) -> List[Dict[str, Any]]:
