@@ -164,3 +164,22 @@ def test_line_bot_commands_and_quota_integration():
     redeem_reply = handler.handle_message_text("兌換 VIP888", user_id=test_uid)
     assert "恭喜" in redeem_reply
     assert "VIP" in redeem_reply
+
+def test_line_webhook_verify_endpoint():
+    """驗證 LINE Webhook Verify 探測請求與 GET/POST/HEAD 路由狀態一律回傳 200"""
+    from fastapi.testclient import TestClient
+    from app import app
+    
+    client = TestClient(app)
+    
+    # 1. 測試 GET /callback
+    r_get = client.get("/callback")
+    assert r_get.status_code == 200
+    
+    # 2. 測試 POST /callback 空 body 探測
+    r_post = client.post("/callback", json={})
+    assert r_post.status_code == 200
+    
+    # 3. 測試結尾帶斜線 /callback/
+    r_slash = client.post("/callback/", json={"events": []})
+    assert r_slash.status_code == 200
