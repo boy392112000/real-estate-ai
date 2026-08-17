@@ -348,30 +348,38 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function renderPolicyModal(policies, terms) {
     let html = '<div style="display:flex; flex-direction:column; gap:1rem;">';
-    policies.forEach(p => {
-      const isDraft = p.status.includes('草案') || p.status.includes('預告');
-      html += `
-        <div class="policy-card">
-          <div class="policy-card-header">
-            <strong>${p.title}</strong>
-            <span class="policy-badge ${isDraft ? 'draft' : ''}">${p.status}</span>
+    
+    html += `<h4 style="color:#0f172a; font-weight:700;">📜 台灣最新現行法規與預告草案（共 ${policies.length} 條）</h4>`;
+    if (policies.length === 0) {
+      html += '<p style="color:#64748b; font-size:0.85rem;">法規資料庫正在自動還原更新，請點擊下方按鈕或重新整理...</p>';
+    } else {
+      policies.forEach(p => {
+        const pStatus = p.status || '現行實施中';
+        const isDraft = pStatus.includes('草案') || pStatus.includes('預告');
+        const keyRules = Array.isArray(p.key_rules) ? p.key_rules : [];
+        html += `
+          <div class="policy-card">
+            <div class="policy-card-header">
+              <strong>${p.title || '房市法規規範'}</strong>
+              <span class="policy-badge ${isDraft ? 'draft' : ''}">${pStatus}</span>
+            </div>
+            <p style="font-size:0.8rem; color:#64748b; margin-bottom:0.4rem;">主管機關：${p.authority || '主管機關'} | 生效/時程：${p.effective_date || '現行'}</p>
+            <ul class="policy-rules">
+              ${keyRules.map(r => `<li>${r}</li>`).join('')}
+            </ul>
+            ${p.warning_notice ? `<p style="margin-top:0.4rem; font-size:0.8rem; color:#b45309;">${p.warning_notice}</p>` : ''}
           </div>
-          <p style="font-size:0.8rem; color:#64748b; margin-bottom:0.4rem;">主管機關：${p.authority} | 生效/時程：${p.effective_date}</p>
-          <ul class="policy-rules">
-            ${p.key_rules.map(r => `<li>${r}</li>`).join('')}
-          </ul>
-          ${p.warning_notice ? `<p style="margin-top:0.4rem; font-size:0.8rem; color:#b45309;">${p.warning_notice}</p>` : ''}
-        </div>
-      `;
-    });
+        `;
+      });
+    }
 
-    html += '<h4 style="margin-top:1rem;">📌 台灣在地房產避坑術語</h4>';
+    html += `<h4 style="margin-top:1.5rem; color:#0f172a; font-weight:700;">📌 台灣在地房產避坑術語（共 ${terms.length} 則）</h4>`;
     terms.forEach(t => {
       html += `
         <div class="policy-card">
-          <strong>${t.term}</strong>
-          <p style="font-size:0.85rem; margin-top:0.25rem;">${t.definition}</p>
-          <p style="font-size:0.8rem; color:#b91c1c; margin-top:0.25rem;">⚠️ ${t.risk_warning}</p>
+          <strong>${t.term || ''}</strong>
+          <p style="font-size:0.85rem; margin-top:0.25rem;">${t.definition || ''}</p>
+          <p style="font-size:0.8rem; color:#b91c1c; margin-top:0.25rem;">⚠️ ${t.risk_warning || ''}</p>
         </div>
       `;
     });

@@ -102,6 +102,10 @@ async def test_connection(req: TestConnectionRequest):
 
 @app.get("/api/health")
 async def health_check():
+    if not validator.policies:
+        ensure_knowledge_files()
+        validator.policies = validator._load_policies()
+        validator.terms = validator._load_terms()
     return {
         "status": "healthy",
         "policies_loaded": len(validator.policies),
@@ -113,6 +117,10 @@ async def health_check():
 @app.get("/api/policies")
 async def get_policies():
     """獲取台灣最新房產法規與預告草案知識庫"""
+    if not validator.policies:
+        ensure_knowledge_files()
+        validator.policies = validator._load_policies()
+        validator.terms = validator._load_terms()
     return {
         "policies": validator.policies,
         "terms": validator.terms
