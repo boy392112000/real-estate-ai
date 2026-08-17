@@ -154,7 +154,7 @@ def test_line_bot_commands_and_quota_integration():
     
     # 測試 help
     help_reply = handler.handle_message_text("help", user_id=test_uid)
-    assert "房地產爆款發文機器人" in help_reply
+    assert "房地產發文助手" in help_reply
     
     # 測試 額度查詢
     quota_reply = handler.handle_message_text("額度", user_id=test_uid)
@@ -167,8 +167,27 @@ def test_line_bot_commands_and_quota_integration():
     
     # 測試 日常打招呼（免扣額度且親切引導）
     greet_reply = handler.handle_message_text("你好阿", user_id=test_uid)
-    assert "您好！我是房地產爆款發文助手" in greet_reply
-    assert "想產出什麼房市主題" in greet_reply
+    assert "您好！我是房地產爆款發文" in greet_reply
+    assert "您可以直接傳送" in greet_reply
+    
+    # 測試 專業問答諮詢分流（非產文，直接解答）
+    qa_reply = handler.handle_message_text("第二戶房貸成數最高可以貸幾成？", user_id=test_uid)
+    assert "房產" in qa_reply or "法規" in qa_reply
+    
+    # 測試 爆款標題靈感分流
+    hooks_reply = handler.handle_message_text("寫鉤子 新青安", user_id=test_uid)
+    assert "爆款開頭鉤子" in hooks_reply
+
+def test_intent_router_classification():
+    """驗證 IntentRouter 精確識別 5 種意圖"""
+    from core.intent_router import IntentRouter, IntentType
+    
+    assert IntentRouter.classify_intent("你好啊")[0] == IntentType.GREETING
+    assert IntentRouter.classify_intent("額度")[0] == IntentType.SYSTEM_CMD
+    assert IntentRouter.classify_intent("第二戶房貸最高可以貸幾成？")[0] == IntentType.QA_CONSULT
+    assert IntentRouter.classify_intent("新青安可以買預售屋嗎")[0] == IntentType.QA_CONSULT
+    assert IntentRouter.classify_intent("寫鉤子 換屋")[0] == IntentType.GENERATE_HOOKS
+    assert IntentRouter.classify_intent("寫文案 新青安3.0首購攻略")[0] == IntentType.GENERATE_POST
 
 def test_line_webhook_verify_endpoint():
     """驗證 LINE Webhook Verify 探測請求與 GET/POST/HEAD 路由狀態一律回傳 200"""

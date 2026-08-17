@@ -96,6 +96,60 @@ class ViralPostEngine:
             f"如果你今年正打算看房，請把這篇關於【{target_topic}】的避坑指南讀完再出門！"
         ]
 
+    def answer_consulting_question(
+        self,
+        question: str,
+        api_key_override: Optional[str] = None,
+        provider_override: Optional[str] = None
+    ) -> str:
+        """
+        專業房產法規與稅制諮詢問答 (非行銷文案，直接清晰條列解答)
+        """
+        provider = provider_override or "gemini"
+        key = api_key_override
+
+        # 檢索本地法規與聯網最新資訊
+        grounding = self.validator.get_grounding_context(question)
+        live_data = self.live_fetcher.build_live_grounding_context(question)
+        full_context = f"{grounding}\n\n{live_data.get('context_text', '')}"
+
+        prompt = f"""
+你是一位台灣頂級房地產法規與稅務資深顧問。請針對使用者的諮詢問題，給出最權威、清晰、條列化的專業解答。
+
+【使用者問題】：
+{question}
+
+【台灣最新官方政策與法規依據（請嚴格遵循，禁止幻覺）】：
+{full_context}
+
+【回答要求】：
+1. 第一行直接給出核心結論（可以/不行/成數/稅率）。
+2. 條列說明法規關鍵細節與適用條件（附帶主管機關或專有名詞）。
+3. 提示 1~2 點自住或投資實務上的「避坑注意事項」。
+4. 繁體中文，語氣客觀專業且親切，篇幅約 250~450 字，禁止輸出社群發文的宣傳行銷詞彙。
+"""
+        if provider == "gemini" and key:
+            try:
+                import requests
+                for m in ["gemini-3.7-flash", "gemini-2.5-flash", "gemini-2.0-flash", "gemini-1.5-flash"]:
+                    url = f"https://generativelanguage.googleapis.com/v1beta/models/{m}:generateContent?key={key}"
+                    payload = {
+                        "contents": [{"parts": [{"text": prompt}]}],
+                        "generationConfig": {"temperature": 0.2, "maxOutputTokens": 2048}
+                    }
+                    res = requests.post(url, json=payload, timeout=20)
+                    if res.status_code == 200:
+                        candidates = res.json().get("candidates", [])
+                        if candidates:
+                            raw_parts = candidates[0].get("content", {}).get("parts", [])
+                            text = "".join([p.get("text", "") for p in raw_parts if "text" in p]).strip()
+                            if text:
+                                return f"🏛️ 【房產顧問專業解答】：\n\n{text}"
+            except Exception as e:
+                print(f"[Engine] AI 諮詢問答異常: {e}")
+
+        return f"🏛️ 【房產法規速查】：\n針對您詢問的「{question}」，相關法規要點如下：\n{grounding}\n\n💡 如需深度宣傳文案請輸入「寫文案 {question}」。"
+
     def generate(
         self,
         topic: str = "",
