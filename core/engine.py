@@ -74,18 +74,44 @@ class ViralPostEngine:
                 import requests
                 for m in ["gemini-3.7-flash", "gemini-2.5-flash", "gemini-2.0-flash", "gemini-1.5-flash"]:
                     url = f"https://generativelanguage.googleapis.com/v1beta/models/{m}:generateContent?key={gemini_key}"
-                    payload = {"contents": [{"parts": [{"text": prompt}]}]}
+                    payload = {
+                        "contents": [{"parts": [{"text": prompt}]}],
+                        "generationConfig": {
+                            "temperature": 0.7,
+                            "maxOutputTokens": 2048,
+                            "thinkingConfig": {"thinkingBudget": 0}
+                        }
+                    }
                     res = requests.post(url, json=payload, timeout=15)
                     if res.status_code == 200:
                         candidates = res.json().get("candidates", [])
                         if candidates:
                             raw_parts = candidates[0].get("content", {}).get("parts", [])
-                            full_text = "".join([p.get("text", "") for p in raw_parts if "text" in p])
+                            full_text = "".join([p.get("text", "") for p in raw_parts if "text" in p and not p.get("thought", False)])
                             lines = [l.strip().lstrip("12345. -*•") for l in full_text.split("\n") if l.strip()]
                             if len(lines) >= 3:
                                 return lines[:5]
             except Exception as e:
-                print(f"[Engine] AI 產生鉤子異常: {e}")
+                print(f"[Engine] Gemini 產生鉤子異常: {e}")
+
+        elif provider == "openai" and openai_key:
+            try:
+                import requests
+                headers = {"Authorization": f"Bearer {openai_key}", "Content-Type": "application/json"}
+                payload = {
+                    "model": "gpt-4o-mini",
+                    "messages": [{"role": "user", "content": prompt}],
+                    "temperature": 0.7,
+                    "max_tokens": 1024
+                }
+                res = requests.post("https://api.openai.com/v1/chat/completions", headers=headers, json=payload, timeout=15)
+                if res.status_code == 200:
+                    text = res.json()["choices"][0]["message"]["content"]
+                    lines = [l.strip().lstrip("12345. -*•") for l in text.split("\n") if l.strip()]
+                    if len(lines) >= 3:
+                        return lines[:5]
+            except Exception as e:
+                print(f"[Engine] OpenAI 產生鉤子異常: {e}")
 
         # 智慧動態公式庫 (AI 離線時依主題動態組合)
         return [
@@ -150,7 +176,28 @@ class ViralPostEngine:
                             if text:
                                 return f"🏛️ 【房產顧問專業解答】：\n\n{text}"
             except Exception as e:
-                print(f"[Engine] AI 諮詢問答異常: {e}")
+                print(f"[Engine] Gemini 諮詢問答異常: {e}")
+
+        elif provider == "openai" and key:
+            try:
+                import requests
+                headers = {"Authorization": f"Bearer {key}", "Content-Type": "application/json"}
+                payload = {
+                    "model": "gpt-4o-mini",
+                    "messages": [
+                        {"role": "system", "content": "你是一位頂級台灣房地產法規與稅務資深顧問。"},
+                        {"role": "user", "content": prompt}
+                    ],
+                    "temperature": 0.2,
+                    "max_tokens": 2048
+                }
+                res = requests.post("https://api.openai.com/v1/chat/completions", headers=headers, json=payload, timeout=25)
+                if res.status_code == 200:
+                    text = res.json()["choices"][0]["message"]["content"].strip()
+                    if text:
+                        return f"🏛️ 【房產顧問專業解答】：\n\n{text}"
+            except Exception as e:
+                print(f"[Engine] OpenAI 諮詢問答異常: {e}")
 
         return f"🏛️ 【房產法規速查】：\n針對您詢問的「{question}」，相關法規要點如下：\n{grounding}\n\n💡 如需深度宣傳文案請輸入「寫文案 {question}」。"
 

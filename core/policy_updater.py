@@ -189,12 +189,21 @@ class AutomatedPolicyUpdater:
                 url = f"https://generativelanguage.googleapis.com/v1beta/models/{m}:generateContent?key={api_key}"
                 payload = {
                     "contents": [{"parts": [{"text": prompt}]}],
-                    "generationConfig": {"temperature": 0.2, "responseMimeType": "application/json"}
+                    "generationConfig": {
+                        "temperature": 0.2,
+                        "responseMimeType": "application/json",
+                        "maxOutputTokens": 8192,
+                        "thinkingConfig": {"thinkingBudget": 0}
+                    }
                 }
-                res = requests.post(url, json=payload, timeout=30)
+                res = requests.post(url, json=payload, timeout=35)
                 if res.status_code == 200:
-                    text = res.json()["candidates"][0]["content"]["parts"][0]["text"].strip()
-                    return json.loads(text)
+                    candidates = res.json().get("candidates", [])
+                    if candidates:
+                        raw_parts = candidates[0].get("content", {}).get("parts", [])
+                        text = "".join([p.get("text", "") for p in raw_parts if "text" in p and not p.get("thought", False)]).strip()
+                        if text:
+                            return json.loads(text)
 
         elif provider == "openai":
             url = "https://api.openai.com/v1/chat/completions"
