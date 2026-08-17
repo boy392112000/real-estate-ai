@@ -241,14 +241,14 @@ async def line_webhook(request: Request, x_line_signature: Optional[str] = Heade
             return JSONResponse(status_code=status.HTTP_200_OK, content={"status": "ok"})
 
         configuration = Configuration(access_token=settings.LINE_CHANNEL_ACCESS_TOKEN)
-        async with ApiClient(configuration) as api_client:
+        with ApiClient(configuration) as api_client:
             line_bot_api = MessagingApi(api_client)
             for event in events:
                 if isinstance(event, MessageEvent) and isinstance(event.message, TextMessageContent):
                     user_msg = event.message.text
                     user_id = event.source.user_id if hasattr(event.source, "user_id") else "line_real_user"
                     reply_text = line_handler.handle_message_text(user_msg, user_id=user_id)
-                    await line_bot_api.reply_message(
+                    line_bot_api.reply_message(
                         ReplyMessageRequest(
                             reply_token=event.reply_token,
                             messages=[TextMessage(text=reply_text)]
@@ -256,8 +256,8 @@ async def line_webhook(request: Request, x_line_signature: Optional[str] = Heade
                     )
         return JSONResponse(status_code=status.HTTP_200_OK, content={"status": "ok"})
     except Exception as e:
-        print(f"LINE Webhook 處理通知: {e}")
-        # 對 LINE 伺服器一律回傳 200，避免 LINE 官方判定服務異常而中斷 Webhook
+        import traceback
+        print(f"❌ LINE Webhook 處理異常: {e}\n{traceback.format_exc()}")
         return JSONResponse(status_code=status.HTTP_200_OK, content={"status": "handled_with_warning", "detail": str(e)})
 
 if __name__ == "__main__":
