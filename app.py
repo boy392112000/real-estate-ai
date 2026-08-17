@@ -71,6 +71,11 @@ async def serve_index():
         return FileResponse(index_file)
     return HTMLResponse("<h1>房地產爆款發文模型系統啟動成功</h1><p>請確認 static/index.html 是否存在</p>")
 
+@app.post("/")
+async def serve_root_post(request: Request, x_line_signature: Optional[str] = Header(None)):
+    """若 LINE 後台誤將 Webhook 填為根目錄網址，自動轉交 line_webhook 處理"""
+    return await line_webhook(request, x_line_signature)
+
 @app.post("/api/test-connection")
 async def test_connection(req: TestConnectionRequest):
     """測試 API Key 與提供商連線狀態"""
@@ -83,7 +88,7 @@ async def health_check():
         "status": "healthy",
         "policies_loaded": len(validator.policies),
         "hook_categories": len(engine.get_hook_categories()),
-        "llm_provider": settings.DEFAULT_LLM_PROVIDER,
+        "llm_provider": settings.LINE_BOT_AI_PROVIDER,
         "line_configured": bool(settings.LINE_CHANNEL_SECRET and settings.LINE_CHANNEL_ACCESS_TOKEN)
     }
 

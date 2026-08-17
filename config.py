@@ -13,6 +13,7 @@ class Settings:
     
     # LINE Bot 專屬後端 AI 金鑰配置 (SaaS 託管與配額制專用，Web 控制台一律由用戶端傳入)
     LINE_BOT_AI_PROVIDER: str = os.getenv("LINE_BOT_AI_PROVIDER", "gemini")
+    DEFAULT_LLM_PROVIDER: str = os.getenv("LINE_BOT_AI_PROVIDER", "gemini")
     LINE_BOT_AI_API_KEY: str = os.getenv("LINE_BOT_AI_API_KEY", "")
     
     # LINE Messaging API 憑證
