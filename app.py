@@ -259,7 +259,14 @@ async def line_webhook(request: Request, x_line_signature: Optional[str] = Heade
 
     try:
         from linebot.v3 import WebhookParser
-        from linebot.v3.messaging import Configuration, ApiClient, MessagingApi, ReplyMessageRequest, TextMessage
+        from linebot.v3.messaging import (
+            Configuration,
+            ApiClient,
+            MessagingApi,
+            ReplyMessageRequest,
+            TextMessage,
+            ShowLoadingAnimationRequest
+        )
         from linebot.v3.webhooks import MessageEvent, TextMessageContent
 
         parser = WebhookParser(settings.LINE_CHANNEL_SECRET)
@@ -278,6 +285,16 @@ async def line_webhook(request: Request, x_line_signature: Optional[str] = Heade
                     user_id = event.source.user_id if hasattr(event.source, "user_id") else "line_real_user"
                     print(f"  [{idx}] 處理用戶訊息 | UserID: {user_id} | 內容: '{user_msg}'", flush=True)
                     
+                    # 1. 立即觸發手機端 LINE 讀取中動畫（「...」動畫，提升使用者體驗）
+                    try:
+                        line_bot_api.show_loading_animation(
+                            ShowLoadingAnimationRequest(chat_id=user_id, loading_seconds=30)
+                        )
+                        print(f"  [{idx}] ⏳ 已觸發手機端 LINE 讀取中動畫...", flush=True)
+                    except Exception as load_err:
+                        print(f"  [{idx}] 觸發讀取動畫通知 (非致命): {load_err}", flush=True)
+
+                    # 2. 進行 AI 原創生成與法規檢核
                     reply_text = line_handler.handle_message_text(user_msg, user_id=user_id)
                     print(f"  [{idx}] 產出回覆內容 (長度: {len(reply_text)})，正在呼叫 LINE API 送出...", flush=True)
                     

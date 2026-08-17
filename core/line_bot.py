@@ -107,13 +107,16 @@ class LineBotHandler:
 • 每日 00:00 自動恢復 3 次免費額度
 • 🎁 限時福利：輸入「兌換 VIP888」立即升級為 VIP 永久無限產文！"""
 
-        # 8. 解析物件參數或主題產文
-        platform = "facebook"
-        if "threads" in raw.lower():
+        # 8. 解析物件參數或主題產文（針對手機用戶預設為 IG/Threads/Reels 節奏）
+        platform = "instagram"
+        raw_lower = raw.lower()
+        if any(k in raw_lower for k in ["reels", "短影音", "腳本", "短片", "影片", "tiktok"]):
+            platform = "reels"
+        elif any(k in raw_lower for k in ["threads", "脆", "短金句", "短文"]):
             platform = "threads"
-        elif "ig" in raw.lower() or "instagram" in raw.lower():
-            platform = "instagram"
-        elif "line" in raw.lower():
+        elif any(k in raw_lower for k in ["fb", "facebook", "長文", "深度"]):
+            platform = "facebook"
+        elif "line" in raw_lower:
             platform = "line"
 
         # 檢查是否有物件參數關鍵字
