@@ -232,11 +232,15 @@ class LineBotHandler:
                 return result.get("error", "❌ AI 生成失敗，請確認 API Key 設定。")
 
             content = result.get("content", "")
-            reply = [
-                content,
-                f"\n--------------------\n📊 帳戶：{quota_check['role'].upper()} | 今日剩餘額度：{quota_check['remaining']}",
-                "💡 回覆「0」可隨時回到主選單。"
-            ]
+            validation = result.get("validation", {})
+            reply = [content]
+            if validation and validation.get("warnings"):
+                reply.append("\n⚠️ 【法規事實檢核提醒】：")
+                for w in validation.get("warnings"):
+                    reply.append(f"- {w}")
+
+            reply.append(f"\n--------------------\n📊 帳戶：{quota_check['role'].upper()} | 今日剩餘額度：{quota_check['remaining']}")
+            reply.append("💡 回覆「0」可隨時回到主選單。")
             return "\n".join(reply)
 
         # =========================================================
