@@ -206,23 +206,52 @@ async def simulate_line_message(req: LineSimulateRequest):
     )
     return {"reply": reply}
 
+import sys
+from datetime import datetime
+
+@app.middleware("http")
+async def log_requests_middleware(request: Request, call_next):
+    client_ip = request.client.host if request.client else "unknown"
+    path = request.url.path
+    method = request.method
+    
+    # 針對 Webhook 與 API 請求進行即時標記
+    if path in ["/callback", "/callback/", "/"] and method == "POST":
+        print(f"\n🔔 [{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] 收到外部 Webhook POST 請求：路徑={path} | 來源IP={client_ip}", flush=True)
+
+    response = await call_next(request)
+    return response
+
 @app.api_route("/callback", methods=["GET", "POST", "HEAD"])
 @app.api_route("/callback/", methods=["GET", "POST", "HEAD"])
 async def line_webhook(request: Request, x_line_signature: Optional[str] = Header(None)):
     """LINE Messaging API 官方 Webhook 入口 (支援 Verify 探測與真實事件)"""
+    now_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    
     # 針對 GET / HEAD 探測請求直接回傳 200 OK
     if request.method in ["GET", "HEAD"]:
+        print(f"[{now_str}] 收到 GET/HEAD 探測請求，回傳 200 OK", flush=True)
         return JSONResponse(status_code=status.HTTP_200_OK, content={"status": "ok", "message": "LINE Webhook endpoint is healthy."})
 
     body = await request.body()
     body_str = body.decode("utf-8")
 
+    print(f"\n==================== [LINE Webhook 事件進入] ====================", flush=True)
+    print(f"• 時間: {now_str}", flush=True)
+    print(f"• X-Line-Signature: '{x_line_signature or ''}'", flush=True)
+    print(f"• Body 長度: {len(body_str)} 字元", flush=True)
+    print(f"• Body 內容: {body_str[:300]}", flush=True)
+    print(f"• 伺服器 Secret 配置狀態: {'已填寫 (長度: ' + str(len(settings.LINE_CHANNEL_SECRET)) + ')' if settings.LINE_CHANNEL_SECRET else '❌ 尚未填寫'}", flush=True)
+    print(f"• 伺服器 Token 配置狀態: {'已填寫 (長度: ' + str(len(settings.LINE_CHANNEL_ACCESS_TOKEN)) + ')' if settings.LINE_CHANNEL_ACCESS_TOKEN else '❌ 尚未填寫'}", flush=True)
+
     # LINE Verify 探測時通常發送空 body 或空 events 陣列
     if not body_str or body_str.strip() == "{}":
+        print("• 判定為空探測請求，直接回傳 200 OK", flush=True)
         return JSONResponse(status_code=status.HTTP_200_OK, content={"status": "ok"})
 
-    # 若尚未在伺服器設定 LINE 憑證，仍回傳 200 讓 LINE 探測通過
+    # 若尚未在伺服器設定 LINE 憑證
     if not settings.LINE_CHANNEL_SECRET or not settings.LINE_CHANNEL_ACCESS_TOKEN:
+        print("⚠️ 伺服器尚未設定 LINE_CHANNEL_SECRET 或 LINE_CHANNEL_ACCESS_TOKEN，請於 Zeabur Variables 填入。", flush=True)
         return JSONResponse(
             status_code=status.HTTP_200_OK,
             content={"status": "ok", "message": "Webhook received. Credentials not configured yet."}
@@ -236,28 +265,36 @@ async def line_webhook(request: Request, x_line_signature: Optional[str] = Heade
         parser = WebhookParser(settings.LINE_CHANNEL_SECRET)
         events = parser.parse(body_str, x_line_signature or "")
         
-        # 若為 LINE 後台 Verify 產生的空事件清單
+        print(f"• 成功解析事件數: {len(events)} 個", flush=True)
         if not events:
             return JSONResponse(status_code=status.HTTP_200_OK, content={"status": "ok"})
 
         configuration = Configuration(access_token=settings.LINE_CHANNEL_ACCESS_TOKEN)
         with ApiClient(configuration) as api_client:
             line_bot_api = MessagingApi(api_client)
-            for event in events:
+            for idx, event in enumerate(events, 1):
                 if isinstance(event, MessageEvent) and isinstance(event.message, TextMessageContent):
                     user_msg = event.message.text
                     user_id = event.source.user_id if hasattr(event.source, "user_id") else "line_real_user"
+                    print(f"  [{idx}] 處理用戶訊息 | UserID: {user_id} | 內容: '{user_msg}'", flush=True)
+                    
                     reply_text = line_handler.handle_message_text(user_msg, user_id=user_id)
+                    print(f"  [{idx}] 產出回覆內容 (長度: {len(reply_text)})，正在呼叫 LINE API 送出...", flush=True)
+                    
                     line_bot_api.reply_message(
                         ReplyMessageRequest(
                             reply_token=event.reply_token,
                             messages=[TextMessage(text=reply_text)]
                         )
                     )
+                    print(f"  [{idx}] ✅ LINE 訊息成功送達用戶手機！", flush=True)
+                    
+        print(f"=================================================================\n", flush=True)
         return JSONResponse(status_code=status.HTTP_200_OK, content={"status": "ok"})
     except Exception as e:
         import traceback
-        print(f"❌ LINE Webhook 處理異常: {e}\n{traceback.format_exc()}")
+        print(f"❌ LINE Webhook 處理異常: {e}\n{traceback.format_exc()}", flush=True)
+        print(f"=================================================================\n", flush=True)
         return JSONResponse(status_code=status.HTTP_200_OK, content={"status": "handled_with_warning", "detail": str(e)})
 
 if __name__ == "__main__":
