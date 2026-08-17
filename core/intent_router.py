@@ -75,9 +75,15 @@ class IntentRouter:
             return IntentType.QA_CONSULT, {"question": raw}
 
         # 6. 極短無效輸入防呆
-        re_keywords = ["房", "貸", "稅", "約", "買", "賣", "價", "案", "建", "坪", "公設", "都更", "危老", "租", "區", "樓", "地", "宅", "成", "利息", "重購"]
+        re_keywords = ["房", "貸", "稅", "約", "買", "賣", "價", "案", "建", "坪", "公設", "都更", "危老", "租", "區", "樓", "地", "宅", "成", "利息", "重購", "裝修", "裝潢", "驗屋", "客變"]
         if len(raw) <= 2 and not any(k in raw.lower() for k in re_keywords):
             return IntentType.GREETING, {"text": raw, "fallback_short": True}
 
-        # 7. 預設為社群貼文生成
-        return IntentType.GENERATE_POST, {"topic": raw}
+        # 7. 預設為社群貼文生成（清洗前綴指令詞，精確提取主題）
+        clean_topic = raw
+        for prefix in ["寫文案", "生成文案", "產文", "幫我寫", "文案:", "文案：", "貼文:", "貼文：", "主題:", "主題：", "我想要主題是:", "我想要主題是：", "我想要主題是"]:
+            if clean_topic.startswith(prefix):
+                clean_topic = clean_topic[len(prefix):].strip()
+                break
+
+        return IntentType.GENERATE_POST, {"topic": clean_topic or raw}

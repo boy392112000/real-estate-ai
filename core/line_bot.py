@@ -186,8 +186,9 @@ class LineBotHandler:
         if not effective_key:
             return "❌ LINE 機器人服務尚未配置 AI 金鑰！請通知系統管理員於伺服器 .env 填入 LINE_BOT_AI_API_KEY。"
 
+        topic = meta.get("topic", raw)
         result = self.engine.generate(
-            topic=raw,
+            topic=topic,
             platform=platform,
             tone=tone,
             property_data=property_data,

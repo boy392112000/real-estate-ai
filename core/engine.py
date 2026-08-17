@@ -216,9 +216,12 @@ class ViralPostEngine:
         """
         生成爆款房產文章 (支援即時聯網比對與零幻覺防護)
         """
-        # 1. 準備 Hook
+        # 1. 準備 Hook (若有明確主題，由 AI 針對該主題原創開頭金句，避免亂套不相關的貸款鉤子)
         if custom_hook:
             selected_hook = custom_hook
+        elif topic and topic.strip():
+            clean_t = topic.strip()
+            selected_hook = f"請務必 100% 緊扣主題【{clean_t}】，為 Threads 量身原創第一句最吸睛、撕破痛點的爆款開頭金句 Hook。"
         else:
             hooks = self.get_random_hooks(category_id, count=1)
             selected_hook = hooks[0] if hooks else "買房不可不知的最新關鍵細節："
