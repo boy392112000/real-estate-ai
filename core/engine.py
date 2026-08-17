@@ -1,5 +1,4 @@
 import json
-import random
 from pathlib import Path
 from typing import Dict, Any, Optional, List, Tuple
 from config import settings
@@ -27,7 +26,8 @@ class ViralPostEngine:
     def get_hook_categories(self) -> List[Dict[str, Any]]:
         return self.hooks_data.get("categories", [])
 
-    def get_random_hooks(self, category_id: str = "", count: int = 3) -> List[str]:
+    def get_hooks(self, category_id: str = "") -> List[str]:
+        """按順序返回知識庫中的範例標題，絕不隨機亂抽"""
         categories = self.hooks_data.get("categories", [])
         pool = []
         for cat in categories:
@@ -35,7 +35,7 @@ class ViralPostEngine:
                 pool.extend(cat.get("hooks", []))
         if not pool:
             return ["買房這條路上，最貴的成本從來不是房價，而是『猶豫不決』。"]
-        return random.sample(pool, min(count, len(pool)))
+        return pool
 
     def generate_dynamic_hooks(
         self,
@@ -223,8 +223,7 @@ class ViralPostEngine:
             clean_t = topic.strip()
             selected_hook = f"請務必 100% 緊扣主題【{clean_t}】，為 Threads 量身原創第一句最吸睛、撕破痛點的爆款開頭金句 Hook。"
         else:
-            hooks = self.get_random_hooks(category_id, count=1)
-            selected_hook = hooks[0] if hooks else "買房不可不知的最新關鍵細節："
+            selected_hook = "請根據台灣最新房市現況與自住客核心痛點，為 Threads 量身原創第一句最吸睛、撕破痛點的爆款開頭金句 Hook。"
 
         # 2. 即時聯網搜尋比對最新政策資訊
         live_data = {"has_live_data": False, "sources": [], "context_text": ""}

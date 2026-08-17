@@ -4,7 +4,6 @@ document.addEventListener('DOMContentLoaded', () => {
   const categorySelect = document.getElementById('categorySelect');
   const hookSelect = document.getElementById('hookSelect');
   const customHookInput = document.getElementById('customHookInput');
-  const btnRandomHook = document.getElementById('btnRandomHook');
   const platformSelect = document.getElementById('platformSelect');
   const toneSelect = document.getElementById('toneSelect');
   const topicInput = document.getElementById('topicInput');
@@ -95,14 +94,7 @@ document.addEventListener('DOMContentLoaded', () => {
     renderHooksForCategory(categorySelect.value);
   });
 
-  // 隨機抽鉤子
-  btnRandomHook.addEventListener('click', () => {
-    const options = hookSelect.options;
-    if (options.length > 0) {
-      const randIndex = Math.floor(Math.random() * options.length);
-      hookSelect.selectedIndex = randIndex;
-    }
-  });
+
 
   // AI 智能即時生成專屬鉤子
   const btnAiGenHooks = document.getElementById('btnAiGenHooks');
