@@ -135,14 +135,18 @@ class ViralPostEngine:
                     url = f"https://generativelanguage.googleapis.com/v1beta/models/{m}:generateContent?key={key}"
                     payload = {
                         "contents": [{"parts": [{"text": prompt}]}],
-                        "generationConfig": {"temperature": 0.2, "maxOutputTokens": 2048}
+                        "generationConfig": {
+                            "temperature": 0.2,
+                            "maxOutputTokens": 4096,
+                            "thinkingConfig": {"thinkingBudget": 0}
+                        }
                     }
-                    res = requests.post(url, json=payload, timeout=20)
+                    res = requests.post(url, json=payload, timeout=25)
                     if res.status_code == 200:
                         candidates = res.json().get("candidates", [])
                         if candidates:
                             raw_parts = candidates[0].get("content", {}).get("parts", [])
-                            text = "".join([p.get("text", "") for p in raw_parts if "text" in p]).strip()
+                            text = "".join([p.get("text", "") for p in raw_parts if "text" in p and not p.get("thought", False)]).strip()
                             if text:
                                 return f"🏛️ 【房產顧問專業解答】：\n\n{text}"
             except Exception as e:
@@ -359,18 +363,19 @@ class ViralPostEngine:
                 ],
                 "generationConfig": {
                     "temperature": 0.7,
-                    "maxOutputTokens": 4096
+                    "maxOutputTokens": 8192,
+                    "thinkingConfig": {"thinkingBudget": 0}
                 }
             }
             try:
-                res = requests.post(url, json=payload, timeout=30)
+                res = requests.post(url, json=payload, timeout=35)
                 if res.status_code == 200:
                     data = res.json()
                     candidates = data.get("candidates", [])
                     if candidates:
                         parts = candidates[0].get("content", {}).get("parts", [])
                         if parts:
-                            full_text = "".join([p.get("text", "") for p in parts if "text" in p]).strip()
+                            full_text = "".join([p.get("text", "") for p in parts if "text" in p and not p.get("thought", False)]).strip()
                             if full_text:
                                 return full_text, m
                 else:
