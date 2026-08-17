@@ -157,13 +157,14 @@ class LineBotHandler:
 • 每日 00:00 自動恢復 3 次免費額度
 • 🎁 限時福利：輸入「兌換 VIP888」立即升級為 VIP 永久無限產文！"""
 
-        # 解析目標社群平台
-        platform = "instagram"
+        # 解析目標社群平台（預設為 Threads 爆款短文格式）
+        platform = "threads"
+        tone = "辛辣直白一針見血、撕扯痛點、大白話揭露市場真相"
         raw_lower = raw.lower()
         if any(k in raw_lower for k in ["reels", "短影音", "腳本", "短片", "影片", "tiktok"]):
             platform = "reels"
-        elif any(k in raw_lower for k in ["threads", "脆", "短金句", "短文"]):
-            platform = "threads"
+        elif any(k in raw_lower for k in ["ig", "instagram", "圖文", "卡片"]):
+            platform = "instagram"
         elif any(k in raw_lower for k in ["fb", "facebook", "長文", "深度"]):
             platform = "facebook"
         elif "line" in raw_lower:
@@ -188,6 +189,7 @@ class LineBotHandler:
         result = self.engine.generate(
             topic=raw,
             platform=platform,
+            tone=tone,
             property_data=property_data,
             api_key_override=effective_key,
             provider_override=effective_provider
