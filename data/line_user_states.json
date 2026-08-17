@@ -28,5 +28,20 @@
     "state": "idle",
     "context": {},
     "updated_at": "2026-08-17 09:14:06"
+  },
+  "line_guided_458b2410": {
+    "state": "idle",
+    "context": {},
+    "updated_at": "2026-08-17 09:17:29"
+  },
+  "line_guided_86eef5d9": {
+    "state": "idle",
+    "context": {},
+    "updated_at": "2026-08-17 09:19:26"
+  },
+  "line_guided_13442ccf": {
+    "state": "idle",
+    "context": {},
+    "updated_at": "2026-08-17 09:21:02"
   }
 }

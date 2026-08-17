@@ -184,17 +184,20 @@ class AutomatedPolicyUpdater:
 """
 
         if provider == "gemini":
-            models = ["gemini-3.7-flash", "gemini-2.5-flash", "gemini-2.0-flash", "gemini-1.5-flash"]
+            models = ["gemini-3.7-flash", "gemini-2.0-flash", "gemini-1.5-flash", "gemini-1.5-pro"]
+            clean_key = api_key.strip()
             for m in models:
-                url = f"https://generativelanguage.googleapis.com/v1beta/models/{m}:generateContent?key={api_key}"
+                url = f"https://generativelanguage.googleapis.com/v1beta/models/{m}:generateContent?key={clean_key}"
+                gen_cfg = {
+                    "temperature": 0.2,
+                    "responseMimeType": "application/json",
+                    "maxOutputTokens": 8192
+                }
+                if "3." in m or "2.0" in m:
+                    gen_cfg["thinkingConfig"] = {"thinkingBudget": 0}
                 payload = {
                     "contents": [{"parts": [{"text": prompt}]}],
-                    "generationConfig": {
-                        "temperature": 0.2,
-                        "responseMimeType": "application/json",
-                        "maxOutputTokens": 8192,
-                        "thinkingConfig": {"thinkingBudget": 0}
-                    }
+                    "generationConfig": gen_cfg
                 }
                 res = requests.post(url, json=payload, timeout=35)
                 if res.status_code == 200:

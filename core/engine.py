@@ -75,19 +75,19 @@ class ViralPostEngine:
 3. 繁體中文，格式為每行一組，不要包含編號或廢話。
 """
 
-        # 優先呼叫 LLM
         if provider == "gemini" and gemini_key:
             try:
                 import requests
-                for m in ["gemini-3.7-flash", "gemini-2.5-flash", "gemini-2.0-flash", "gemini-1.5-flash"]:
-                    url = f"https://generativelanguage.googleapis.com/v1beta/models/{m}:generateContent?key={gemini_key}"
+                clean_key = gemini_key.strip()
+                models_to_try = self.get_available_gemini_models(clean_key)
+                for m in models_to_try:
+                    url = f"https://generativelanguage.googleapis.com/v1beta/models/{m}:generateContent?key={clean_key}"
+                    gen_config = {"temperature": 0.7, "maxOutputTokens": 2048}
+                    if "3." in m or "2.0" in m:
+                        gen_config["thinkingConfig"] = {"thinkingBudget": 0}
                     payload = {
                         "contents": [{"parts": [{"text": prompt}]}],
-                        "generationConfig": {
-                            "temperature": 0.7,
-                            "maxOutputTokens": 2048,
-                            "thinkingConfig": {"thinkingBudget": 0}
-                        }
+                        "generationConfig": gen_config
                     }
                     res = requests.post(url, json=payload, timeout=15)
                     if res.status_code == 200:
@@ -164,15 +164,16 @@ class ViralPostEngine:
         if provider == "gemini" and key:
             try:
                 import requests
-                for m in ["gemini-3.7-flash", "gemini-2.5-flash", "gemini-2.0-flash", "gemini-1.5-flash"]:
-                    url = f"https://generativelanguage.googleapis.com/v1beta/models/{m}:generateContent?key={key}"
+                clean_key = key.strip()
+                models_to_try = self.get_available_gemini_models(clean_key)
+                for m in models_to_try:
+                    url = f"https://generativelanguage.googleapis.com/v1beta/models/{m}:generateContent?key={clean_key}"
+                    gen_config = {"temperature": 0.2, "maxOutputTokens": 4096}
+                    if "3." in m or "2.0" in m:
+                        gen_config["thinkingConfig"] = {"thinkingBudget": 0}
                     payload = {
                         "contents": [{"parts": [{"text": prompt}]}],
-                        "generationConfig": {
-                            "temperature": 0.2,
-                            "maxOutputTokens": 4096,
-                            "thinkingConfig": {"thinkingBudget": 0}
-                        }
+                        "generationConfig": gen_config
                     }
                     res = requests.post(url, json=payload, timeout=25)
                     if res.status_code == 200:
@@ -354,9 +355,10 @@ class ViralPostEngine:
 
         import requests
         if provider == "gemini":
-            models_to_try = ["gemini-3.7-flash", "gemini-3.6-flash", "gemini-2.5-flash", "gemini-2.0-flash", "gemini-1.5-flash", "gemini-1.5-pro"]
+            models_to_try = ["gemini-3.7-flash", "gemini-2.0-flash", "gemini-1.5-flash", "gemini-1.5-pro"]
+            clean_key = api_key.strip()
             for m in models_to_try:
-                url = f"https://generativelanguage.googleapis.com/v1beta/models/{m}:generateContent?key={api_key}"
+                url = f"https://generativelanguage.googleapis.com/v1beta/models/{m}:generateContent?key={clean_key}"
                 payload = {"contents": [{"parts": [{"text": "Hello"}]}]}
                 try:
                     res = requests.post(url, json=payload, timeout=10)
@@ -383,6 +385,42 @@ class ViralPostEngine:
 
         return {"success": True, "provider": "local", "message": "內建繁體中文動態範本引擎就緒"}
 
+    def get_available_gemini_models(self, api_key: str) -> List[str]:
+        """
+        動態調用 Google AI Studio 官方 ListModels API
+        取得該 API Key 實際具備權限且支援 generateContent 的模型清單，絕不猜測硬編碼
+        """
+        import requests
+        clean_key = api_key.strip()
+        url = f"https://generativelanguage.googleapis.com/v1beta/models?key={clean_key}"
+        try:
+            res = requests.get(url, timeout=8)
+            if res.status_code == 200:
+                data = res.json()
+                discovered = []
+                for item in data.get("models", []):
+                    name = item.get("name", "").replace("models/", "")
+                    methods = item.get("supportedGenerationMethods", [])
+                    if "generateContent" in methods and "embedding" not in name and "imagen" not in name and "aqa" not in name:
+                        discovered.append(name)
+                if discovered:
+                    # 排序規則：優先使用 flash、旗艦版、排除已廢棄版本
+                    def rank_model(m_name: str) -> int:
+                        score = 10
+                        if "flash" in m_name: score -= 5
+                        if "3." in m_name: score -= 3
+                        elif "2.0" in m_name: score -= 2
+                        elif "1.5" in m_name: score -= 1
+                        if "pro" in m_name and "flash" not in m_name: score += 2
+                        return score
+                    discovered.sort(key=rank_model)
+                    return discovered
+        except Exception as e:
+            print(f"[Gemini] 動態探測可用模型失敗: {e}")
+
+        # 回退安全預設清單
+        return ["gemini-2.0-flash", "gemini-1.5-flash", "gemini-1.5-pro", "gemini-2.0-flash-lite"]
+
     def _call_gemini(
         self,
         api_key: str,
@@ -397,31 +435,27 @@ class ViralPostEngine:
         import requests
         prompt = self._build_llm_prompt(topic, category_id, platform, tone, property_data, hook, grounding_context)
         
-        # 依序嘗試最新官方發布之 Gemini 模型 ID
-        models_to_try = [
-            "gemini-3.7-flash",
-            "gemini-3.6-flash",
-            "gemini-2.5-flash",
-            "gemini-2.0-flash",
-            "gemini-1.5-flash",
-            "gemini-1.5-flash-latest",
-            "gemini-1.5-pro"
-        ]
-        last_err = ""
+        # 1. 向 Google 官方即時探測該 API Key 支援的所有合法模型
+        models_to_try = self.get_available_gemini_models(api_key)
+        errors_list = []
+        clean_key = api_key.strip()
         
         for m in models_to_try:
-            url = f"https://generativelanguage.googleapis.com/v1beta/models/{m}:generateContent?key={api_key}"
+            url = f"https://generativelanguage.googleapis.com/v1beta/models/{m}:generateContent?key={clean_key}"
+            gen_config = {
+                "temperature": 0.7,
+                "maxOutputTokens": 8192
+            }
+            if "3." in m or "2.0" in m:
+                gen_config["thinkingConfig"] = {"thinkingBudget": 0}
+                
             payload = {
                 "contents": [
                     {
                         "parts": [{"text": prompt}]
                     }
                 ],
-                "generationConfig": {
-                    "temperature": 0.7,
-                    "maxOutputTokens": 8192,
-                    "thinkingConfig": {"thinkingBudget": 0}
-                }
+                "generationConfig": gen_config
             }
             try:
                 res = requests.post(url, json=payload, timeout=35)
@@ -435,11 +469,13 @@ class ViralPostEngine:
                             if full_text:
                                 return full_text, m
                 else:
-                    last_err = f"Model {m} HTTP {res.status_code}: {res.text}"
+                    err_msg = f"HTTP {res.status_code}: {res.text[:200]}"
+                    errors_list.append(f"{m} 失敗 ({err_msg})")
             except Exception as e:
-                last_err = str(e)
+                errors_list.append(f"{m} 異常 ({str(e)})")
                 
-        raise RuntimeError(f"所有 Gemini 模型端點呼叫失敗: {last_err}")
+        err_report = " | ".join(errors_list)
+        raise RuntimeError(f"所有 Gemini 模型端點呼叫失敗: {err_report}")
 
     def _call_openai(
         self,
